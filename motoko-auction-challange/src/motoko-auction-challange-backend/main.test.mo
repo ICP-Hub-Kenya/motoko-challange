@@ -1,6 +1,8 @@
 import Debug "mo:base/Debug";
 import List "mo:base/List";
 import Text "mo:base/Text";
+import Result "mo:base/Result";
+import Error "mo:base/Error";
 
 actor {
     // Define the interface of the main canister we're testing
@@ -28,7 +30,7 @@ actor {
         originator : Principal;
     };
 
-    public func testCreateAuction() : async (Text) {
+    public func testCreateAuction() : async Text {
         let testImage : Blob = "\FF\D8\FF\E0" : Blob;
         let testItem = {
             title = "Test Auction";
@@ -39,13 +41,19 @@ actor {
         await mainCanister.newAuction(testItem, 3600);
         let details = await mainCanister.getAuctionDetails(0);
 
-        // Debug.print("Expected title: Test Auction");
-        // Debug.print("Actual title: " # details.item.title);
+        Debug.print(details.item.title);
+        Debug.print(details.item.description);
+        if (details.item.image.size() > 0) {
+            Debug.print("image is here");
+        };
 
-        if (details.item.title == "Test Auction") {
-            "✅ Test passed: Auction created successfully";
+        if (
+            details.item.title == testItem.title and
+            details.item.description == testItem.description
+        ) {
+            "Auction created successfully";
         } else {
-            "❌ Test failed: Expected 'Test Auction' but got '" # details.item.title # "'";
+            "Failed to create auction";
         };
     };
 };

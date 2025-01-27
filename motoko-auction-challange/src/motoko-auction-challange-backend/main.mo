@@ -1,5 +1,6 @@
 import List "mo:base/List";
 import Debug "mo:base/Debug";
+import Result "mo:base/Result";
 
 actor {
   type Item = {
@@ -30,7 +31,7 @@ actor {
   };
 
   func findAuction(auctionId : AuctionId) : Auction {
-  let result = List.find<Auction>(auctions, func auction = auction.id == auctionId);
+    let result = List.find<Auction>(auctions, func auction = auction.id == auctionId);
     switch (result) {
       case null Debug.trap("Inexistent id");
       case (?auction) auction;
@@ -40,8 +41,16 @@ actor {
   stable var auctions = List.nil<Auction>();
   stable var idCounter = 0;
 
-  public func newAuction(item : Item, duration : Nat) : async () {
+  public func newAuction(item : Item, duration : Nat) : async Result.Result<(), Text> {
     // Implementation here
+    if (item.title == "") {
+      return #err("Title cannot be empty");
+    };
+
+    if (item.description == "") {
+      return #err("Description cannot be empty");
+    };
+
     let newAuction : Auction = {
       id = idCounter;
       item = item;
@@ -51,19 +60,21 @@ actor {
 
     auctions := List.push(newAuction, auctions);
     idCounter += 1;
+
+    #ok(());
   };
 
   public query func getAuctionDetails(auctionId : AuctionId) : async AuctionDetails {
     let auction = findAuction(auctionId);
     let bidHistory = List.toArray(List.reverse(auction.bidHistory));
-    { 
-      item = auction.item; 
-      bidHistory; 
-      remainingTime = auction.remainingTime 
-    }
+    {
+      item = auction.item;
+      bidHistory;
+      remainingTime = auction.remainingTime;
+    };
   };
 
   public shared (message) func makeBid(auctionId : AuctionId, price : Nat) : async () {
     // Implementation here
   };
-}
+};
