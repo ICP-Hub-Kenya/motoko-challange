@@ -18,37 +18,5 @@ This is a coding challenge for implementing a decentralized auction system on th
 - Handling of edge cases and error conditions
 - Efficiency of implemented solutions
 
-## Getting Started:
-
-1. Clone the repository:
-```bash
-git clone https://github.com/ICP-Hub-Kenya/motoko-challange
-``` 
-
-2. CD into the ``motoko-auction-challange`` directory
-```bash
-cd motoko-auction-challange
-```
-
-## How to Submit: 
-1. Fork this repository
-
-2. Create a new branch with your name:
-```bash
-git checkout -b solution/your-name
-``` 
-
-3. Implement the required functionality
-
-4. Test your implementation:
-- Deploy locally and test all features
-- Include a video demo showcasing your test case
-- Verify data persistence across upgrades
-
-5. Create a submission:
-- Push your solution to your fork
-- Create a Pull Request to the main repository
-- Include in the PR description:
-   - Brief explanation of your implementation
-   - Any additional features or improvements
-   - Video showing the whole demo
+## Demo Video
+https://github.com/user-attachments/assets/764cc324-ff62-4b02-aaaa-3d0c74770e2e
