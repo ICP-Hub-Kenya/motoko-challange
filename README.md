@@ -1,3 +1,4 @@
+
 # Motoko Challenge: Enhance a Decentralized Auction Dapp
 
 ## Overview
@@ -19,6 +20,4 @@ This is a coding challenge for implementing a decentralized auction system on th
 - Efficiency of implemented solutions
 
 ## Demo Video
-[![Watch the video](https://img.youtube.com/vi/WQgjweBnkPE/maxresdefault.jpg)](https://www.youtube.com/watch?v=WQgjweBnkPE)
-
-
+https://github.com/user-attachments/assets/946747e8-31df-4003-a2a8-52d0cd7c5d72
