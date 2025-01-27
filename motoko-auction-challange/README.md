@@ -38,6 +38,10 @@ dfx canister call motoko-auction-challange-backend getUserBidHistory
 dfx canister call motoko-auction-challange-backend getHighestBidInSystem
 ```
 
-## Demo
-Watch the [ICP Dapp Auction System Demo](https://github.com/ICP-Hub-Kenya/motoko-challange/assets/143833326/946747e8-31df-4003-a2a8-52d0cd7c5d72)
+## Demo Video
+https://github.com/user-attachments/assets/764cc324-ff62-4b02-aaaa-3d0c74770e2e
+
+
+
+
 
