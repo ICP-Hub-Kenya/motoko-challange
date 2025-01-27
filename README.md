@@ -19,4 +19,5 @@ This is a coding challenge for implementing a decentralized auction system on th
 - Efficiency of implemented solutions
 
 ## Demo Video
-https://github.com/user-attachments/assets/764cc324-ff62-4b02-aaaa-3d0c74770e2e
+https://github.com/user-attachments/assets/09abd4c4-9d5f-42c5-9a30-720b885d4630
+
