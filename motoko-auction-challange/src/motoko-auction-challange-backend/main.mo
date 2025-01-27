@@ -62,7 +62,7 @@ actor {
   };
 
   func findAuction(auctionId : AuctionId) : Result.Result<Auction, Error> {
-    let result = List.find<Auction>(auctions, func auction = auction.id == auctionId);
+  let result = List.find<Auction>(auctions, func auction = auction.id == auctionId);
     switch (result) {
       case null #err(#AuctionNotFound);
       case (?auction) #ok(auction);
@@ -251,8 +251,8 @@ actor {
       List.map<Auction, AuctionDetails>(
         completedAuctions,
         func (auction) {
-          {
-            item = auction.item;
+    { 
+      item = auction.item; 
             bidHistory = List.toArray(List.reverse(auction.bidHistory));
             remainingTime = auction.remainingTime;
             status = auction.status;
@@ -299,5 +299,22 @@ actor {
   // Query function to get total number of auctions
   public query func getTotalAuctions() : async Nat {
     List.size(auctions)
+  };
+
+  // Query function to get highest bid across all the auctions
+  public query func getHighestBidInSystem() : async Nat {
+    var maxBid : Nat = 0;
+
+    for (auction in List.toArray(auctions).vals()){
+      switch (List.get(auction.bidHistory, 0)){
+        case null { };
+        case (?bid){
+          if (bid.price > maxBid){
+            maxBid := bid.price;
+          };
+        };
+      };
+    };
+    maxBid
   };
 }
