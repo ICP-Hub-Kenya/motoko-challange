@@ -42,6 +42,15 @@ actor {
 
   public func newAuction(item : Item, duration : Nat) : async () {
     // Implementation here
+    let newAuction : Auction = {
+      id = idCounter;
+      item = item;
+      var bidHistory = List.nil<Bid>();
+      var remainingTime = duration;
+    };
+
+    auctions := List.push(newAuction, auctions);
+    idCounter += 1;
   };
 
   public query func getAuctionDetails(auctionId : AuctionId) : async AuctionDetails {
