@@ -136,6 +136,12 @@ actor {
 
   func checkAndCloseAuctions() {
     auctions := List.map<Auction, Auction>(auctions, func(auction) {
+      
+      if (auction.remainingTime > 0) {
+        auction.remainingTime := Nat.sub(auction.remainingTime,
+          if (auction.remainingTime >= 60) 60 else auction.remainingTime); // Decrease remaining time by 60 seconds
+      };
+
       if (auction.remainingTime == 0 and auction.isActive) {
         auction.isActive := false;
 
