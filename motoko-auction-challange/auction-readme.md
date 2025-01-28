@@ -20,7 +20,7 @@ This project implements a decentralized auction system on the Internet Computer 
 
 1. Clone the repository:
 ```bash
-git checkout -b solution/your-name
+git checkout -b solution/john_nalwa
 cd motoko-auction-challange
 ```
 
