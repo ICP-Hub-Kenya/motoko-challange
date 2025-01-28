@@ -194,19 +194,39 @@ actor {
     };
   };
 
-  public shared query (message) func getBiddingHistory() : async [(AuctionId, Bid)] {
+  public shared query (message) func getBiddingHistory() : async Result.Result<[(AuctionId, Bid)], Text> {
     var userBids = Buffer.Buffer<(AuctionId, Bid)>(0);
+
+    // Check if auctions exist
+    if (List.isNil(auctions)) {
+      return #err("No auctions available");
+    };
 
     for (auction in List.toArray(auctions).vals()) {
       let bids = List.toArray(auction.bidHistory);
-      for (bid in bids.vals()) {
-        if (bid.originator == message.caller) {
-          userBids.add((auction.id, bid));
+
+      if (bids.size() > 0) {
+        for (bid in bids.vals()) {
+          if (bid.originator == message.caller) {
+            userBids.add((auction.id, bid));
+          };
         };
       };
     };
 
-    Buffer.toArray(userBids);
+    // Check if user has any bids
+    if (userBids.size() == 0) {
+      return #err("No bidding history found for this user");
+    };
+
+    #ok(Buffer.toArray(userBids));
+  };
+
+  public func cleanupTestData() : async Result.Result<(), Text> {
+    // Reset auction list and counter
+    auctions := List.nil<Auction>();
+    idCounter := 0;
+    #ok(());
   };
 
 };

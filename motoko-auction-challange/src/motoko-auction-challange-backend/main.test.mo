@@ -13,6 +13,8 @@ actor {
         getAllAuctions : shared () -> async [AuctionDetails];
         getActiveAuctions : shared () -> async [AuctionDetails];
         makeBid : shared (Nat, Nat) -> async Result.Result<(), Text>;
+        getBiddingHistory : shared () -> async Result.Result<[(AuctionId, Bid)], Text>;
+        cleanupTestData : shared () -> async Result.Result<(), Text>;
     };
 
     // Define the types we need
@@ -40,6 +42,8 @@ actor {
         #active;
         #closed;
     };
+
+    type AuctionId = Nat;
 
     public func testCreateAuction() : async Text {
         let testImage : Blob = "\FF\D8\FF\E0" : Blob;
@@ -262,23 +266,107 @@ actor {
         testResults;
     };
 
+    public func testBiddingHistory() : async Text {
+        let testImage : Blob = "\FF\D8\FF\E0" : Blob;
+
+        // Create two test auctions
+        let testItem1 = {
+            title = "History Test Auction 1";
+            description = "First auction for history test";
+            image = testImage;
+        };
+
+        let testItem2 = {
+            title = "History Test Auction 2";
+            description = "Second auction for history test";
+            image = testImage;
+        };
+
+        let auctions = await mainCanister.getAllAuctions();
+        let auction1Id = auctions.size();
+        let auction2Id = auction1Id + 1;
+
+        var testResults = "\n=== Bidding History Tests ===\n";
+
+        // Test 1: Check initial state (should return error for no bids)
+        let initialHistory = await mainCanister.getBiddingHistory();
+        if (Result.isErr(initialHistory)) {
+            testResults := testResults # "✅ Correctly identified no initial bids\n";
+        } else {
+            testResults := testResults # "❌ Should have returned error for no initial bids\n";
+        };
+
+        // Test 2: Create auctions and place bids
+        let result1 = await mainCanister.newAuction(testItem1, 3600, 100);
+        let result2 = await mainCanister.newAuction(testItem2, 3600, 200);
+
+        if (Result.isOk(result1) and Result.isOk(result2)) {
+            let bid1Result = await mainCanister.makeBid(auction1Id, 150);
+            let bid2Result = await mainCanister.makeBid(auction2Id, 250);
+
+            if (Result.isOk(bid1Result) and Result.isOk(bid2Result)) {
+                testResults := testResults # "✅ Successfully placed test bids\n";
+            } else {
+                testResults := testResults # "❌ Failed to place test bids\n";
+            };
+        };
+
+        // Test 3: Check final bidding history
+        let finalHistory = await mainCanister.getBiddingHistory();
+        if (Result.isOk(finalHistory)) {
+            switch (finalHistory) {
+                case (#ok(bids)) {
+                    if (bids.size() >= 2) {
+                        testResults := testResults # "✅ Successfully retrieved bidding history with multiple bids\n";
+                    } else {
+                        testResults := testResults # "❌ Incomplete bidding history retrieved\n";
+                    };
+                };
+                case (#err(_)) {};
+            };
+        } else {
+            let errorMsg = Result.mapErr<[(AuctionId, Bid)], Text, Text>(finalHistory, func(x : Text) : Text { x });
+            testResults := testResults # "❌ Failed to retrieve bidding history: " # debug_show (errorMsg) # "\n";
+        };
+
+        testResults;
+    };
+
     public func runAllTests() : async Text {
         let test1 = await testCreateAuction();
+        let cleanup = await mainCanister.cleanupTestData();
+
         let test2 = await testEmptyTitleAuction();
+        let cleanup2 = await mainCanister.cleanupTestData();
+
         let test3 = await testEmptyDescriptionAuction();
+        let _cleanup3 = await mainCanister.cleanupTestData();
+
         let test4 = await testGetAllAuctions();
+        let cleanup4 = await mainCanister.cleanupTestData();
+
         let test5 = await testGetActiveAuctions();
+        let cleanup5 = await mainCanister.cleanupTestData();
+
         let test6 = await testBiddingFeatures();
+        let cleanup6 = await mainCanister.cleanupTestData();
+
         let test7 = await testReservePriceAuction();
+        let cleanup7 = await mainCanister.cleanupTestData();
+
+        let test8 = await testBiddingHistory();
+        let cleanup8 = await mainCanister.cleanupTestData();
 
         "\n=== Test Results ===\n" #
         "1. " # test1 # "\n" #
         "2. " # test2 # "\n" #
         "3. " # test3 # "\n" #
-        "4, " # test4 # "\n" #
-        "5, " # test5 # "\n" #
-        "6, " # test6 # "\n" #
-        "7, " # test7 # "\n" #
+        "4. " # test4 # "\n" #
+        "5. " # test5 # "\n" #
+        "6. " # test6 # "\n" #
+        "7. " # test7 # "\n" #
+        "8. " # test8 # "\n" #
         "====================";
     };
+
 };
