@@ -3,6 +3,11 @@
     "motoko-auction-challange-backend": {
       "main": "src/motoko-auction-challange-backend/main.mo",
       "type": "motoko"
+    },
+    "auction_test": {
+      "main": "test/auction.test.mo",
+      "type": "motoko",
+      "dependencies": ["motoko-auction-challange-backend"]
     }
   },
   "defaults": {
