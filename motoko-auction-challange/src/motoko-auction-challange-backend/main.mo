@@ -180,6 +180,10 @@ actor {
           return #err("Auction has ended");
         };
 
+        if (price < auction.reservePrice) {
+          return #err("Bid must be at least the reserveprice of " #Nat.toText(auction.reservePrice));
+        };
+
         let newBid : Bid = {
           price;
           time = Int.abs(Time.now());
