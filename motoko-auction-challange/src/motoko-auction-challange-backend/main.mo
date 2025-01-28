@@ -86,7 +86,10 @@ actor {
           highestBid := bid;
         };
       };
-      auction.winner := ?highestBid.originator;
+
+      if (highestBid.price >= auction.reservePrice) {
+        auction.winner := ?highestBid.originator;
+      }
     };
   };
 
@@ -178,10 +181,6 @@ actor {
 
         if (auction.remainingTime == 0) {
           return #err("Auction has ended");
-        };
-
-        if (price < auction.reservePrice) {
-          return #err("Bid must be at least the reserveprice of " #Nat.toText(auction.reservePrice));
         };
 
         let newBid : Bid = {
