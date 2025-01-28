@@ -222,4 +222,4 @@ actor AuctionDApp {
       };
     }
   };
-}
+} 
