@@ -1,54 +1,78 @@
-# Motoko Challenge: Enhance a Decentralized Auction Dapp
+# Decentralized Auction System Implementation
 
-## Overview
-This is a coding challenge for implementing a decentralized auction system on the Internet Computer using Motoko.
+## Features Implemented
 
-## Your Tasks: 
-1. Implement a function to store and retrieve auction data using stable variables. This will ensure that auction data persists across canister upgrades.
-2. Create a public function that allows users to retrieve a list of all active auctions (those with remaining time > 0).
-3. Implement a periodic timer that automatically closes auctions when their remaining time reaches zero. When an auction closes, it should determine the winning bid and update the auction status.
-4. Add a new feature that allows the auction creator to set a reserve price. If the highest bid doesn't meet the reserve price when the auction closes, the item should not be sold.
-5. Implement a function that allows users to retrieve their bidding history across all auctions.
+### 1. Auction Data Management
 
-## Evaluation criteria: 
-- Evaluation Criteria
-- Correct implementation of the required functionality
-- Proper use of Motoko language features
-- Code organization and readability
-- Handling of edge cases and error conditions
-- Efficiency of implemented solutions
+- Persistent auction data storage using stable variables
+- Comprehensive auction details including title, description, and image
+- Auction status tracking (active/closed)
 
-## Getting Started:
+### 2. Active Auctions
 
-1. Clone the repository:
-```bash
-git clone https://github.com/ICP-Hub-Kenya/motoko-challange
-``` 
+- Public function to retrieve all active auctions
+- Filtering mechanism for auctions with remaining time > 0
+- Real-time auction status updates
 
-2. CD into the ``motoko-auction-challange`` directory
-```bash
-cd motoko-auction-challange
+### 3. Automatic Auction Closure
+
+- Timer-based system to track auction duration
+- Automatic closure when remaining time reaches zero
+- Winner determination based on highest bid
+- Status updates upon auction completion
+
+### 4. Reserve Price Feature
+
+- Ability for creators to set minimum selling price
+- Validation of reserve price requirements
+- Winner determination considering reserve price
+- No sale if reserve price not met
+
+### 5. Bidding History
+
+- Cross-auction bidding history tracking
+- User-specific bid retrieval
+- Comprehensive bid details including price and timestamp
+- Error handling for various bidding scenarios
+
+## Testing Suite
+
+Comprehensive test coverage including:
+
+- Auction creation validation
+- Empty field handling
+- Active auction filtering
+- Bidding functionality
+- Reserve price mechanics
+- Bidding history retrieval
+- Data cleanup between tests
+
+## Technical Implementation
+
+- Built using Motoko programming language
+- Implements actor-based architecture
+- Uses stable variables for data persistence
+- Incorporates Result types for error handling
+- Implements timer-based automation
+
+## Usage Examples
+
+```motoko
+// Create new auction
+let result = await newAuction(item, duration, reservePrice);
+
+// Place bid
+let bidResult = await makeBid(auctionId, price);
+
+// Get user's bidding history
+let history = await getBiddingHistory();
+
+
+## Future Enhancements
+
+- Enhanced bid validation
+- Auction categories
+- User notifications
+- Bid withdrawal mechanism
+- Advanced auction types
 ```
-
-## How to Submit: 
-1. Fork this repository
-
-2. Create a new branch with your name:
-```bash
-git checkout -b solution/your-name
-``` 
-
-3. Implement the required functionality
-
-4. Test your implementation:
-- Deploy locally and test all features
-- Include a video demo showcasing your test case
-- Verify data persistence across upgrades
-
-5. Create a submission:
-- Push your solution to your fork
-- Create a Pull Request to the main repository
-- Include in the PR description:
-   - Brief explanation of your implementation
-   - Any additional features or improvements
-   - Video showing the whole demo
