@@ -41,7 +41,14 @@ actor {
   stable var idCounter = 0;
 
   public func newAuction(item : Item, duration : Nat) : async () {
-    // Implementation here
+    idCounter += 1;  // Increment the auction ID counter
+    let newAuction : Auction = {
+      id = idCounter;           // Set the auction ID
+      item = item;              // Set the auction item
+      var bidHistory = List.nil<Bid>();  // Initialize an empty bid history
+      var remainingTime = duration;     // Set the auction duration (remaining time)
+    };
+    auctions := List.push(newAuction, auctions);  // Add the new auction to the list of active auctions
   };
 
   public query func getAuctionDetails(auctionId : AuctionId) : async AuctionDetails {
