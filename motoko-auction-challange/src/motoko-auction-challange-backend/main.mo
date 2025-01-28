@@ -1,7 +1,8 @@
 import List "mo:base/List";
 import Debug "mo:base/Debug";
-import Nat "mo:base/Nat";  // Import Nat module
-import Time "mo:base/Time"; // Import Time module
+import Nat "mo:base/Nat"; 
+import Time "mo:base/Time";
+import Int "mo:base/Int";
 
 actor {
   //item in the auction
@@ -88,8 +89,8 @@ actor {
 
     // Create the new bid with the price and time
     let newBid : Bid = {
-      price;                    // Set the bid price
-      time = Time.now();        // Use Time.now() directly for timestamp
+       price;                   
+       time = Int.abs(Time.now()) ;  
       originator = message.caller;  // Set the bidder's principal
     };
 
