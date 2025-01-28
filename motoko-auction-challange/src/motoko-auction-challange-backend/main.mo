@@ -1,13 +1,17 @@
 import List "mo:base/List";
 import Debug "mo:base/Debug";
+import Nat "mo:base/Nat";  // Import Nat module
+import Time "mo:base/Time"; // Import Time module
 
 actor {
+  //item in the auction
   type Item = {
     title : Text;
     description : Text;
     image : Blob;
   };
 
+//bid in auction
   type Bid = {
     price : Nat;
     time : Nat;
@@ -80,7 +84,16 @@ actor {
         };
       };
     };
-  };
-}
+  
 
-//create a bid with  price and time
+    // Create the new bid with the price and time
+    let newBid : Bid = {
+      price;                    // Set the bid price
+      time = Time.now();        // Use Time.now() directly for timestamp
+      originator = message.caller;  // Set the bidder's principal
+    };
+
+    // Add the new bid to the auction's bid history
+    auction.bidHistory := List.push(newBid, auction.bidHistory);
+  };
+};
