@@ -37,6 +37,8 @@ actor {
     item : Item;
     bidHistory : [Bid];
     remainingTime : Nat;
+    status : AuctionStatus;
+    winner : ?Principal;
   };
 
   type AuctionStatus = {
@@ -71,8 +73,6 @@ actor {
     };
 
     auctions := updatedAuctions;
-
-    timerId := Timer.setTimer<system>(#seconds 1, updateAuctions);
   };
 
   private func closeAuction(auction : Auction) : async () {
@@ -89,7 +89,7 @@ actor {
 
       if (highestBid.price >= auction.reservePrice) {
         auction.winner := ?highestBid.originator;
-      }
+      };
     };
   };
 
@@ -146,7 +146,7 @@ actor {
   public query func getAllAuctions() : async [AuctionDetails] {
     let auctionList = List.toArray(auctions);
 
-    Array.map<Auction, AuctionDetails>(auctionList, func(auction) { { item = auction.item; bidHistory = List.toArray(List.reverse(auction.bidHistory)); remainingTime = auction.remainingTime } });
+    Array.map<Auction, AuctionDetails>(auctionList, func(auction) { { item = auction.item; bidHistory = List.toArray(List.reverse(auction.bidHistory)); remainingTime = auction.remainingTime; status = auction.status; winner = auction.winner } });
   };
 
   public query func getActiveAuctions() : async [AuctionDetails] {
@@ -158,6 +158,8 @@ actor {
           item = auction.item;
           bidHistory = List.toArray(List.reverse(auction.bidHistory));
           remainingTime = auction.remainingTime;
+          status = auction.status;
+          winner = auction.winner;
         };
       },
     );
@@ -177,10 +179,6 @@ actor {
         // Validation logic
         if (auction.status != #active) {
           return #err("Auction is not active");
-        };
-
-        if (auction.remainingTime == 0) {
-          return #err("Auction has ended");
         };
 
         let newBid : Bid = {

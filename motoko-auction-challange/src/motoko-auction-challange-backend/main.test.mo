@@ -3,11 +3,12 @@ import List "mo:base/List";
 import Text "mo:base/Text";
 import Result "mo:base/Result";
 import Error "mo:base/Error";
+import Timer "mo:base/Timer";
 
 actor {
     // Define the interface of the main canister we're testing
     let mainCanister = actor ("bkyz2-fmaaa-aaaaa-qaaaq-cai") : actor {
-        newAuction : shared (Item, Nat) -> async Result.Result<(), Text>;
+        newAuction : shared (Item, Nat, Nat) -> async Result.Result<(), Text>;
         getAuctionDetails : shared (Nat) -> async AuctionDetails;
         getAllAuctions : shared () -> async [AuctionDetails];
         getActiveAuctions : shared () -> async [AuctionDetails];
@@ -25,12 +26,19 @@ actor {
         item : Item;
         bidHistory : [Bid];
         remainingTime : Nat;
+        status : AuctionStatus;
+        winner : ?Principal;
     };
 
     type Bid = {
         price : Nat;
         time : Nat;
         originator : Principal;
+    };
+
+    type AuctionStatus = {
+        #active;
+        #closed;
     };
 
     public func testCreateAuction() : async Text {
@@ -40,11 +48,13 @@ actor {
             description = "This is a test auction item";
             image = testImage;
         };
+        let initialActiveAuctions = await mainCanister.getAllAuctions();
+        let initialCount = initialActiveAuctions.size();
 
-        let result = await mainCanister.newAuction(testItem, 3600);
+        let result = await mainCanister.newAuction(testItem, 3600, 0);
 
         if (Result.isOk(result)) {
-            let details = await mainCanister.getAuctionDetails(0);
+            let details = await mainCanister.getAuctionDetails(initialCount);
             if (
                 details.item.title == testItem.title and
                 details.item.description == testItem.description
@@ -67,7 +77,7 @@ actor {
             image = testImage;
         };
 
-        let result = await mainCanister.newAuction(testItem, 3600);
+        let result = await mainCanister.newAuction(testItem, 3600, 0);
 
         if (Result.isOk(result)) {
             return "❌ Should not create auction with empty title";
@@ -89,7 +99,7 @@ actor {
             image = testImage;
         };
 
-        let result = await mainCanister.newAuction(testItem, 3600);
+        let result = await mainCanister.newAuction(testItem, 3600, 0);
 
         if (Result.isOk(result)) {
             return "❌ Should not create auction with empty description";
@@ -116,8 +126,8 @@ actor {
             image = testImage;
         };
 
-        let result1 = await mainCanister.newAuction(testItem1, 3600);
-        let result2 = await mainCanister.newAuction(testItem2, 3600);
+        let result1 = await mainCanister.newAuction(testItem1, 3600, 0);
+        let result2 = await mainCanister.newAuction(testItem2, 3600, 0);
 
         if (Result.isOk(result1) and Result.isOk(result2)) {
             let auctions = await mainCanister.getAllAuctions();
@@ -153,8 +163,8 @@ actor {
             image = testImage;
         };
 
-        let result1 = await mainCanister.newAuction(activeItem, 3600);
-        let result2 = await mainCanister.newAuction(expiredItem, 0);
+        let result1 = await mainCanister.newAuction(activeItem, 3600, 0);
+        let result2 = await mainCanister.newAuction(expiredItem, 0, 0);
 
         let newActiveAuctions = await mainCanister.getActiveAuctions();
 
@@ -178,7 +188,7 @@ actor {
         let auctions = await mainCanister.getAllAuctions();
         let newAuctionId = auctions.size();
 
-        let createResult = await mainCanister.newAuction(testItem, 3600);
+        let createResult = await mainCanister.newAuction(testItem, 3600, 0);
 
         var testResults = "\n=== Bidding Tests Results ===\n";
 
@@ -211,6 +221,47 @@ actor {
         testResults;
     };
 
+    public func testReservePriceAuction() : async Text {
+        let testImage : Blob = "\FF\D8\FF\E0" : Blob;
+        let testItem = {
+            title = "Reserve Price Test Auction";
+            description = "Testing reserve price functionality";
+            image = testImage;
+        };
+
+        let auctions = await mainCanister.getAllAuctions();
+        let newAuctionId = auctions.size();
+
+        // Create auction with reserve price of 1000 and short duration
+        let createResult = await mainCanister.newAuction(testItem, 2, 1000);
+
+        var testResults = "\n=== Reserve Price Tests ===\n";
+
+        // Test multiple bids
+        let bid1Result = await mainCanister.makeBid(newAuctionId, 500); // Below reserve
+        let bid2Result = await mainCanister.makeBid(newAuctionId, 800); // Below reserve
+        let bid3Result = await mainCanister.makeBid(newAuctionId, 1200); // Above reserve
+
+        // Get final auction details
+        let finalDetails = await mainCanister.getAuctionDetails(newAuctionId);
+
+        // Verify bid history
+        if (finalDetails.bidHistory.size() == 3) {
+            testResults := testResults # "✅ All bids recorded successfully\n";
+
+            let highestBid = finalDetails.bidHistory[2].price; // Changed from [0] to [2]
+            if (highestBid >= 1000) {
+                testResults := testResults # "✅ Highest bid meets reserve price\n";
+            } else {
+                testResults := testResults # "❌ Highest bid below reserve price\n";
+            };
+        } else {
+            testResults := testResults # "❌ Not all bids were recorded\n";
+        };
+
+        testResults;
+    };
+
     public func runAllTests() : async Text {
         let test1 = await testCreateAuction();
         let test2 = await testEmptyTitleAuction();
@@ -218,6 +269,7 @@ actor {
         let test4 = await testGetAllAuctions();
         let test5 = await testGetActiveAuctions();
         let test6 = await testBiddingFeatures();
+        let test7 = await testReservePriceAuction();
 
         "\n=== Test Results ===\n" #
         "1. " # test1 # "\n" #
@@ -226,6 +278,7 @@ actor {
         "4, " # test4 # "\n" #
         "5, " # test5 # "\n" #
         "6, " # test6 # "\n" #
+        "7, " # test7 # "\n" #
         "====================";
     };
 };
