@@ -68,7 +68,7 @@ actor {
     idCounter
   };
 
-  // Place bid
+  // Bid
   public shared(msg) func placeBid(auctionId : AuctionId, bidPrice : Nat) : async Text {
     let auction = findAuction(auctionId);
     
@@ -117,7 +117,7 @@ actor {
     }
   };
 
-  // Get active auctions
+  // List of Auctions
   public query func getActiveAuctions() : async [AuctionDetails] {
     let activeAuctions = List.filter<Auction>(
       auctions,
@@ -183,7 +183,6 @@ actor {
     });
   };
 
-  // Timer for periodic updates
   private let auctionTimer = Timer.recurringTimer(
     #seconds(60),
     func() : async () {
