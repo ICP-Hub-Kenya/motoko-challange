@@ -2,6 +2,8 @@ import List "mo:base/List";
 import Debug "mo:base/Debug";
 import Result "mo:base/Result";
 import Array "mo:base/Array";
+import Time "mo:base/Time";
+import Timer "mo:base/Timer";
 
 actor {
   type Item = {
@@ -23,12 +25,61 @@ actor {
     item : Item;
     var bidHistory : List.List<Bid>;
     var remainingTime : Nat;
+    var status : AuctionStatus;
+    var winner : ?Principal;
   };
 
   type AuctionDetails = {
     item : Item;
     bidHistory : [Bid];
     remainingTime : Nat;
+  };
+
+  type AuctionStatus = {
+    #active;
+    #closed;
+  };
+
+  let TIMER_INTERVAL = 1_000_000_000;
+
+  private var timerId : Timer.TimerId = 0;
+
+  public func init() : async () {
+    timerId := Timer.setTimer<system>(#seconds 1, updateAuctions);
+  };
+
+  private func updateAuctions() : async () {
+    var updatedAuctions = List.nil<Auction>();
+
+    for (auction in List.toArray(auctions).vals()) {
+      if (auction.remainingTime > 0) {
+        auction.remainingTime := auction.remainingTime - 1;
+
+        if (auction.remainingTime == 0) {
+          await closeAuction(auction);
+        };
+      };
+      updatedAuctions := List.push(auction, updatedAuctions);
+    };
+
+    auctions := updatedAuctions;
+
+    timerId := Timer.setTimer<system>(#seconds 1, updateAuctions);
+  };
+
+  private func closeAuction(auction : Auction) : async () {
+    auction.status := #closed;
+
+    let bids = List.toArray(auction.bidHistory);
+    if (bids.size() > 0) {
+      var highestBid = bids[0];
+      for (bid in bids.vals()) {
+        if (bid.price > highestBid.price) {
+          highestBid := bid;
+        };
+      };
+      auction.winner := ?highestBid.originator;
+    };
   };
 
   func findAuction(auctionId : AuctionId) : Auction {
@@ -57,6 +108,8 @@ actor {
       item = item;
       var bidHistory = List.nil<Bid>();
       var remainingTime = duration;
+      var status = #active;
+      var winner = null;
     };
 
     auctions := List.push(newAuction, auctions);
@@ -72,6 +125,8 @@ actor {
       item = auction.item;
       bidHistory;
       remainingTime = auction.remainingTime;
+      status = auction.status;
+      winner = auction.winner;
     };
   };
 
