@@ -61,7 +61,26 @@ actor {
     }
   };
 
+
+//function to create a bid on an auction
   public shared (message) func makeBid(auctionId : AuctionId, price : Nat) : async () {
-    // Implementation here
+     let auction = findAuction(auctionId);  // Find the auction by ID
+
+    // Check if the auction is still active (has remaining time)
+    if (auction.remainingTime == 0) {
+      Debug.trap("Auction has ended");  // If time is up, trap the execution
+    };
+
+    // Ensure the new bid is higher than the previous bid
+    switch (List.get(auction.bidHistory, 0)) {
+      case null { };  // First bid, no need to check
+      case (?prevBid) {
+        if (price <= prevBid.price) {
+          Debug.trap("Bid must be higher than the current highest bid");  // Reject the bid if not higher
+        };
+      };
+    };
   };
 }
+
+//create a bid with  price and time
