@@ -47,6 +47,7 @@ module {
     #NotFound;
     #NotAuthorized;
     #AuctionEnded;
+    #InvalidAmount;
     #ReservePriceNotMet;
   };
 };

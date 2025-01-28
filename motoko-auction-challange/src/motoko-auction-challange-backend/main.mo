@@ -8,6 +8,7 @@ import Principal "mo:base/Principal";
 import Map "mo:map/Map";
 import { thash } "mo:map/Map";
 import { recurringTimer } = "mo:base/Timer";
+import Debug "mo:base/Debug";
 
 actor {
   type Auction = Types.Auction;
@@ -121,6 +122,15 @@ actor {
           return #err(#AuctionEnded);
         };
 
+        let currentTime = Time.now();
+        if (auction.endTime <= currentTime) {
+          return #err(#AuctionEnded);
+        };
+
+        if (price == 0) {
+          return #err(#InvalidAmount);
+        };
+
         let newBid : Bid = {
           originator = caller;
           price = price;
@@ -147,44 +157,59 @@ actor {
     let auctionsArray = Map.vals(auctions);
 
     for (auction in auctionsArray) {
-      if (auction.status == #Active and auction.endTime <= currentTime) {
-
-        // Find the highest bid
-        let highestBid = List.foldLeft<Bid, Bid>(
-          auction.bidHistory,
-          { price = 0; time = 0; originator = Principal.fromText("") },
-          func(bid : Bid, acc : Bid) : Bid {
-            if (bid.price > acc.price) {
-              bid;
-            } else {
-              acc;
+      if (auction.status == #Active) {
+        let remainingTime = auction.endTime - currentTime;
+        if (remainingTime <= 0) {
+          var highestBid : ?Bid = null;
+          // Find the highest bid
+          for (bid in List.toIter(auction.bidHistory)) {
+            switch (highestBid) {
+              case (null) { highestBid := ?bid };
+              case (?hb) {
+                if (bid.price > hb.price) {
+                  highestBid := ?bid;
+                };
+              };
             };
-          },
-        );
+          };
+          switch (highestBid) {
+            case (null) {
+              // Update the auction status
+              let updatedAuction = {
+                id = auction.id;
+                item = auction.item;
+                endTime = auction.endTime;
+                bidHistory = auction.bidHistory;
+                status = #ReservePriceNotMet;
+              };
+              Map.set(auctions, thash, auction.id, updatedAuction);
+            };
+            case (?hb) {
+              // Check if the reserve price was met
+              // By default the highest bid must be greater than 0
+              var meetsReserve = hb.price > 0;
+              switch (auction.item.reservePrice) {
+                case (null) {};
+                case (?reservePrice) {
+                  meetsReserve := meetsReserve and (hb.price >= reservePrice);
+                };
+              };
+              let newStatus = if (meetsReserve) { #Ended } else {
+                #ReservePriceNotMet;
+              };
 
-        // Check if the reserve price was met
-        // By default the highest bid must be greater than 0
-        var meetsReserve = highestBid.price > 0;
-        switch (auction.item.reservePrice) {
-          case (null) {};
-          case (?reservePrice) {
-            meetsReserve := meetsReserve and (highestBid.price >= reservePrice);
+              // Update the auction status
+              let updatedAuction = {
+                id = auction.id;
+                item = auction.item;
+                endTime = auction.endTime;
+                bidHistory = auction.bidHistory;
+                status = newStatus;
+              };
+              Map.set(auctions, thash, auction.id, updatedAuction);
+            };
           };
         };
-
-        let newStatus = if (meetsReserve) { #Ended } else {
-          #ReservePriceNotMet;
-        };
-
-        // Update the auction status
-        let updatedAuction = {
-          id = auction.id;
-          item = auction.item;
-          endTime = auction.endTime;
-          bidHistory = auction.bidHistory;
-          status = newStatus;
-        };
-        Map.set(auctions, thash, auction.id, updatedAuction);
       };
     };
   };
