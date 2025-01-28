@@ -2,7 +2,6 @@ import List "mo:base/List";
 import Debug "mo:base/Debug";
 import Principal "mo:base/Principal";
 import Time "mo:base/Time";
-import Array "mo:base/Array";
 import Timer "mo:base/Timer";
 import Nat "mo:base/Nat";
 import Result "mo:base/Result";
@@ -13,12 +12,15 @@ actor {
     description : Text;
     image : Blob;
   };
+
   type Bid = {
     price : Nat;
     time : Int;
     originator : Principal;
   };
+
   type AuctionId = Nat;
+
   type Auction = {
     id : AuctionId;
     item : Item;
@@ -28,7 +30,9 @@ actor {
     var winningBid : ?Bid;
     reservePrice : Nat;
     owner : Principal;
+    minBidIncrement : Nat;  // Added minimum bid increment
   };
+
   type AuctionDetails = {
     item : Item;
     bidHistory : [Bid];
@@ -37,22 +41,33 @@ actor {
     winningBid : ?Bid;
     reservePrice : Nat;
     owner : Principal;
+    minBidIncrement : Nat; // Include min bid increment in details
   };
 
-  // Find auction by ID
-  func findAuction(auctionId : AuctionId) : Auction {
-    let result = List.find<Auction>(auctions, func auction = auction.id == auctionId);
-    switch (result) {
-      case null Debug.trap("Inexistent id");
-      case (?auction) auction;
-    };
+  // Enhanced error handling using Result
+  type Error = {
+    #AuctionNotFound;
+    #AuctionClosed;
+    #BidTooLow;
+    #BidTooSmall;
+    #InvalidBid;
+    #AuctionEnded;
   };
 
   stable var auctions = List.nil<Auction>();
   stable var idCounter = 0;
 
+  // Improved auction finder with Result
+  private func findAuction(auctionId : AuctionId) : Result.Result<Auction, Error> {
+    let result = List.find<Auction>(auctions, func auction = auction.id == auctionId);
+    switch(result) {
+      case null { #err(#AuctionNotFound) };
+      case (?auction) { #ok(auction) };
+    };
+  };
+
   // Create new auction
-  public shared(msg) func createAuction(item : Item, duration : Nat, reservePrice : Nat) : async AuctionId {
+  public shared(msg) func createAuction(item : Item, duration : Nat, reservePrice : Nat, minBidIncrement : Nat) : async Result.Result<AuctionId, Error> {
     idCounter += 1;
     let newAuction : Auction = {
       id = idCounter;
@@ -63,111 +78,96 @@ actor {
       var winningBid = null;
       reservePrice = reservePrice;
       owner = msg.caller;
+      minBidIncrement = minBidIncrement;
     };
     auctions := List.push(newAuction, auctions);
-    idCounter
+    #ok(idCounter)
   };
 
-  // Bid
-  public shared(msg) func placeBid(auctionId : AuctionId, bidPrice : Nat) : async Text {
-    let auction = findAuction(auctionId);
-    
-    if (not auction.isActive) {
-      return "Auction is closed";
-    };
-
-    if (auction.remainingTime == 0) {
-      return "Auction time has expired";
-    };
-
-    switch (List.get(auction.bidHistory, 0)) {
-      case null {
-        if (bidPrice < auction.reservePrice) {
-          return "Bid below reserve price";
+  // Place a bid
+  public shared(msg) func placeBid(auctionId : AuctionId, bidPrice : Nat) : async Result.Result<Text, Error> {
+    switch (findAuction(auctionId)) {
+      case (#err(e)) { return #err(e) };
+      case (#ok(auction)) {
+        if (not auction.isActive) {
+          return #err(#AuctionClosed);
         };
-      };
-      case (?highestBid) {
-        if (bidPrice <= highestBid.price) {
-          return "Bid must be higher than current highest bid";
+
+        if (auction.remainingTime == 0) {
+          return #err(#AuctionClosed);
         };
+
+
+        switch (List.get(auction.bidHistory, 0)) {
+          case null { if (bidPrice < auction.reservePrice) { return #err(#BidTooLow); }};
+          case (?highestBid) { 
+            if (bidPrice < (highestBid.price + auction.minBidIncrement)) {
+              return #err(#BidTooLow);
+            }
+          };
+        };
+
+        let newBid : Bid = {
+          price = bidPrice;
+          time = Time.now();
+          originator = msg.caller;
+        };
+
+        auction.bidHistory := List.push(newBid, auction.bidHistory);
+
+        // Extend auction time if bid placed in last 5 minutes
+        if (auction.remainingTime < 300) {
+          auction.remainingTime := 300; // Reset to 5 minutes
+        };
+
+        #ok("Bid placed successfully");
       };
     };
-
-    let newBid : Bid = {
-      price = bidPrice;
-      time = Time.now();
-      originator = msg.caller;
-    };
-
-    auction.bidHistory := List.push(newBid, auction.bidHistory);
-    "Bid placed successfully"
   };
 
   // Get auction details
-  public query func getAuctionDetails(auctionId : AuctionId) : async AuctionDetails {
-    let auction = findAuction(auctionId);
-    {
-      item = auction.item;
-      bidHistory = List.toArray(List.reverse(auction.bidHistory));
-      remainingTime = auction.remainingTime;
-      isActive = auction.isActive;
-      winningBid = auction.winningBid;
-      reservePrice = auction.reservePrice;
-      owner = auction.owner;
-    }
-  };
-
-  // List of Auctions
-  public query func getActiveAuctions() : async [AuctionDetails] {
-    let activeAuctions = List.filter<Auction>(
-      auctions,
-      func (auction) { auction.isActive and auction.remainingTime > 0 }
-    );
-
-    List.toArray(List.map<Auction, AuctionDetails>(
-      activeAuctions,
-      func (auction) {
-        {
+  public query func getAuctionDetails(auctionId : AuctionId) : async Result.Result<AuctionDetails, Error> {
+    switch (findAuction(auctionId)) {
+      case (#err(e)) { return #err(e) };
+      case (#ok(auction)) {
+        let bidHistory = List.toArray(List.reverse(auction.bidHistory));
+        #ok({
           item = auction.item;
-          bidHistory = List.toArray(List.reverse(auction.bidHistory));
+          bidHistory = bidHistory;
           remainingTime = auction.remainingTime;
           isActive = auction.isActive;
           winningBid = auction.winningBid;
           reservePrice = auction.reservePrice;
           owner = auction.owner;
-        }
-      }
-    ))
-  };
-
-  // Get user's bid history
-  public query func getUserBidHistory(user : Principal) : async [Bid] {
-    var userBids : List.List<Bid> = List.nil();
-    
-    for (auction in List.toArray(auctions).vals()) {
-      let userAuctionBids = List.filter(auction.bidHistory, func(bid : Bid) : Bool {
-        bid.originator == user
-      });
-      userBids := List.append(userAuctionBids, userBids);
-    };
-    
-    List.toArray(userBids)
-  };
-
-  // Close auction and determine winner
-  private func closeAuction(auction : Auction) {
-    if (auction.remainingTime == 0 and auction.isActive) {
-      auction.isActive := false;
-      let highestBid = List.get(auction.bidHistory, 0);
-      switch (highestBid) {
-        case null { /* No bids */ };
-        case (?bid) {
-          if (bid.price >= auction.reservePrice) {
-            auction.winningBid := ?bid;
-          };
-        };
+          minBidIncrement = auction.minBidIncrement;
+        });
       };
     };
+  };
+
+  // Get active auctions with optional category filter
+  public query func getActiveAuctions(category : ?Text) : async [AuctionDetails] {
+    let activeAuctions = List.filter<Auction>(auctions, func(auction) {
+      let categoryMatch = switch (category) {
+        case null { true };
+        case (?cat) { auction.item.title == cat };
+      };
+      auction.isActive and auction.remainingTime > 0 and categoryMatch
+    });
+
+    List.toArray(List.map<Auction, AuctionDetails>(activeAuctions, func (auction) {
+      let bidHistory = List.toArray(List.reverse(auction.bidHistory));
+      {
+        item = auction.item;
+        bidHistory = bidHistory;
+        remainingTime = auction.remainingTime;
+        isActive = auction.isActive;
+        winningBid = auction.winningBid;
+        reservePrice = auction.reservePrice;
+        owner = auction.owner;
+        minBidIncrement = auction.minBidIncrement;
+      }
+    }))
   };
 
   // Update auction times
@@ -183,6 +183,22 @@ actor {
     });
   };
 
+  private func closeAuction(auction : Auction) {
+    if (auction.remainingTime == 0 and auction.isActive) {
+      auction.isActive := false;
+      let highestBid = List.get(auction.bidHistory, 0);
+      switch (highestBid) {
+        case null { /* No bids */ };
+        case (?bid) {
+          if (bid.price >= auction.reservePrice) {
+            auction.winningBid := ?bid;
+          };
+        };
+      };
+    };
+  };
+
+  // Timer to update auction times regularly
   private let auctionTimer = Timer.recurringTimer(
     #seconds(60),
     func() : async () {
