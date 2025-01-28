@@ -27,13 +27,16 @@ actor {
     var remainingTime : Nat;
     reservePrice : Nat;
     var isActive : Bool;
+    creator : Principal;
   };
 
   type AuctionDetails = {
+    id : AuctionId;
     item : Item;
     bidHistory : [Bid];
     remainingTime : Nat;
     isActive : Bool;
+    creator : Principal;
   };
 
   stable var auctions : List.List<Auction> = List.nil<Auction>();
@@ -45,7 +48,7 @@ actor {
     })
   };
 
-  public func newAuction(item : Item, duration : Nat, reservePrice : Nat) : async () {
+  public shared(msg) func newAuction(item : Item, duration : Nat, reservePrice : Nat) : async AuctionId {
     let auction : Auction = {
       id = idCounter;
       item = item;
@@ -53,9 +56,11 @@ actor {
       var remainingTime = duration;
       reservePrice = reservePrice;
       var isActive = true;
+      creator = msg.caller;
     };
     idCounter += 1;
     auctions := List.push(auction, auctions);
+    auction.id
   };
 
   public query func getAuctionDetails(auctionId : AuctionId) : async Result.Result<AuctionDetails, Text> {
@@ -64,10 +69,12 @@ actor {
       case (?auction) {
         let bidHistory : [Bid] = List.toArray(List.reverse(auction.bidHistory));
         #ok({
+          id = auction.id;
           item = auction.item;
           bidHistory = bidHistory;
           remainingTime = auction.remainingTime;
           isActive = auction.isActive;
+          creator = auction.creator;
         })
       };
     }
@@ -105,10 +112,12 @@ actor {
       }),
       func (auction : Auction) : AuctionDetails {
         {
+          id = auction.id;
           item = auction.item;
           bidHistory = List.toArray(List.reverse(auction.bidHistory));
           remainingTime = auction.remainingTime;
           isActive = auction.isActive;
+          creator = auction.creator;
         }
       }
     ));
@@ -146,6 +155,13 @@ actor {
         })
       })
     ));
+  };
+
+  // New function to get all auction IDs and their creator principals
+  public query func getAuctionIdsAndCreators() : async [(AuctionId, Principal)] {
+    List.toArray(List.map<Auction, (AuctionId, Principal)>(auctions, func (auction : Auction) : (AuctionId, Principal) { 
+      (auction.id, auction.creator)
+    }))
   };
 
   system func heartbeat() : async () {
