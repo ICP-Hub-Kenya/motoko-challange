@@ -18,7 +18,7 @@ actor class AuctionSystem() {
     private let MAX_AUCTION_DURATION_NS = 30 * 24 * 60 * 60 * 1000000000; // 30 days
     private let MAX_BIDS_PER_USER = 1000;
 
-    // Types
+    
     type AuctionId = Nat;
     
     type Bid = {
