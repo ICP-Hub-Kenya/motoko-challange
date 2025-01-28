@@ -1,6 +1,6 @@
 {
   "canisters": {
-    "motoko-auction-challange-backend": {
+    "backend": {
       "main": "src/motoko-auction-challange-backend/main.mo",
       "type": "motoko"
     }
