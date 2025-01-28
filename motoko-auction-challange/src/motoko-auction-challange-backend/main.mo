@@ -5,6 +5,7 @@ import Array "mo:base/Array";
 import Time "mo:base/Time";
 import Timer "mo:base/Timer";
 import Int "mo:base/Int";
+import Nat "mo:base/Nat";
 
 actor {
   type Item = {
@@ -156,38 +157,35 @@ actor {
   };
 
   public shared (message) func makeBid(auctionId : AuctionId, price : Nat) : async Result.Result<(), Text> {
-    // Implementation here
-    let auction = findAuction(auctionId);
-
-    if (auction.status != #active) {
-      return #err("Auction is not active");
+    // Validate price
+    if (price == 0) {
+      return #err("Bid price must be greater than zero");
     };
 
-    if (auction.remainingTime == 0) {
-      return #err("Auction has ended");
-    };
+    // Check if auction exists
+    let auctionExists = List.find<Auction>(auctions, func auction = auction.id == auctionId);
+    switch (auctionExists) {
+      case (null) { return #err("Auction does not exist") };
+      case (?auction) {
+        // Validation logic
+        if (auction.status != #active) {
+          return #err("Auction is not active");
+        };
 
-    let currentBids = List.toArray(auction.bidHistory);
-    if (currentBids.size() > 0) {
-      let highestBid = Array.foldLeft<Bid, Nat>(
-        currentBids,
-        0,
-        func(maxPrice, bid) {
-          if (bid.price > maxPrice) { bid.price } else { maxPrice };
-        },
-      );
-      if (price <= highestBid) {
-        return #err("Bid must be higher thancurrent highest bid");
+        if (auction.remainingTime == 0) {
+          return #err("Auction has ended");
+        };
+
+        let newBid : Bid = {
+          price;
+          time = Int.abs(Time.now());
+          originator = message.caller;
+        };
+
+        auction.bidHistory := List.push(newBid, auction.bidHistory);
+        #ok(());
       };
     };
-
-    let newBid : Bid = {
-      price;
-      time = Int.abs(Time.now());
-      originator = message.caller;
-    };
-
-    auction.bidHistory := List.push(newBid, auction.bidHistory);
-    #ok(());
   };
+
 };

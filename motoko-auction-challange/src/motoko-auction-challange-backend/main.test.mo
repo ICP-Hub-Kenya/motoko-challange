@@ -11,6 +11,7 @@ actor {
         getAuctionDetails : shared (Nat) -> async AuctionDetails;
         getAllAuctions : shared () -> async [AuctionDetails];
         getActiveAuctions : shared () -> async [AuctionDetails];
+        makeBid : shared (Nat, Nat) -> async Result.Result<(), Text>;
     };
 
     // Define the types we need
@@ -165,12 +166,58 @@ actor {
         };
     };
 
+    public func testBiddingFeatures() : async Text {
+        let testImage : Blob = "\FF\D8\FF\E0" : Blob;
+        let testItem = {
+            title = "Test Auction for Bidding";
+            description = "Test item for bidding features";
+            image = testImage;
+        };
+
+        // Create auction and get its ID from the current auction count
+        let auctions = await mainCanister.getAllAuctions();
+        let newAuctionId = auctions.size();
+
+        let createResult = await mainCanister.newAuction(testItem, 3600);
+
+        var testResults = "\n=== Bidding Tests Results ===\n";
+
+        // Test valid bid
+        let bidResult = await mainCanister.makeBid(newAuctionId, 100);
+        if (Result.isOk(bidResult)) {
+            testResults := testResults # "✅ Valid bid accepted\n";
+        } else {
+            let errorMsg = Result.mapErr<(), Text, Text>(bidResult, func(x) { x });
+            testResults := testResults # "❌ Valid bid rejected: " # debug_show (errorMsg) # "\n";
+        };
+
+        // Test lower bid acceptance
+        let lowerBidResult = await mainCanister.makeBid(newAuctionId, 50);
+        if (Result.isOk(lowerBidResult)) {
+            testResults := testResults # "✅ Lower bid accepted as expected\n";
+        } else {
+            let errorMsg = Result.mapErr<(), Text, Text>(lowerBidResult, func(x) { x });
+            testResults := testResults # "❌ Lower bid rejected: " # debug_show (errorMsg) # "\n";
+        };
+
+        // Test non-existent auction
+        let nonExistentResult = await mainCanister.makeBid(999, 200);
+        if (Result.isErr(nonExistentResult)) {
+            testResults := testResults # "✅ Bid on non-existent auction correctly rejected\n";
+        } else {
+            testResults := testResults # "❌ Bid on non-existent auction incorrectly accepted\n";
+        };
+
+        testResults;
+    };
+
     public func runAllTests() : async Text {
         let test1 = await testCreateAuction();
         let test2 = await testEmptyTitleAuction();
         let test3 = await testEmptyDescriptionAuction();
         let test4 = await testGetAllAuctions();
         let test5 = await testGetActiveAuctions();
+        let test6 = await testBiddingFeatures();
 
         "\n=== Test Results ===\n" #
         "1. " # test1 # "\n" #
@@ -178,6 +225,7 @@ actor {
         "3. " # test3 # "\n" #
         "4, " # test4 # "\n" #
         "5, " # test5 # "\n" #
+        "6, " # test6 # "\n" #
         "====================";
     };
 };
