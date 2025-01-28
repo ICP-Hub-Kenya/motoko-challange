@@ -10,6 +10,7 @@ actor {
         newAuction : shared (Item, Nat) -> async Result.Result<(), Text>;
         getAuctionDetails : shared (Nat) -> async AuctionDetails;
         getAllAuctions : shared () -> async [AuctionDetails];
+        getActiveAuctions : shared () -> async [AuctionDetails];
     };
 
     // Define the types we need
@@ -130,17 +131,53 @@ actor {
         };
     };
 
+    public func testGetActiveAuctions() : async Text {
+        // Get initial count of active auctions
+        let initialActiveAuctions = await mainCanister.getActiveAuctions();
+        let initialCount = initialActiveAuctions.size();
+
+        let testImage : Blob = "\FF\D8\FF\E0" : Blob;
+
+        // Create one active auction
+        let activeItem = {
+            title = "Active Auction";
+            description = "This auction is still running";
+            image = testImage;
+        };
+
+        // Create one expired auction
+        let expiredItem = {
+            title = "Expired Auction";
+            description = "This auction has ended";
+            image = testImage;
+        };
+
+        let result1 = await mainCanister.newAuction(activeItem, 3600);
+        let result2 = await mainCanister.newAuction(expiredItem, 0);
+
+        let newActiveAuctions = await mainCanister.getActiveAuctions();
+
+        if (newActiveAuctions.size() == initialCount + 1) {
+            return "✅ Active auctions count increased by exactly one";
+        } else {
+            return "❌ Active auctions count incorrect. Expected: " # debug_show (initialCount + 1) #
+            " but got: " # debug_show (newActiveAuctions.size());
+        };
+    };
+
     public func runAllTests() : async Text {
         let test1 = await testCreateAuction();
         let test2 = await testEmptyTitleAuction();
         let test3 = await testEmptyDescriptionAuction();
         let test4 = await testGetAllAuctions();
+        let test5 = await testGetActiveAuctions();
 
         "\n=== Test Results ===\n" #
         "1. " # test1 # "\n" #
         "2. " # test2 # "\n" #
         "3. " # test3 # "\n" #
         "4, " # test4 # "\n" #
+        "5, " # test5 # "\n" #
         "====================";
     };
 };

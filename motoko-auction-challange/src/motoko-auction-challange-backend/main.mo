@@ -81,6 +81,20 @@ actor {
     Array.map<Auction, AuctionDetails>(auctionList, func(auction) { { item = auction.item; bidHistory = List.toArray(List.reverse(auction.bidHistory)); remainingTime = auction.remainingTime } });
   };
 
+  public query func getActiveAuctions() : async [AuctionDetails] {
+    let auctionsList = List.toArray(auctions);
+    Array.map<Auction, AuctionDetails>(
+      Array.filter<Auction>(auctionsList, func(auction) { auction.remainingTime > 0 }),
+      func(auction) {
+        {
+          item = auction.item;
+          bidHistory = List.toArray(List.reverse(auction.bidHistory));
+          remainingTime = auction.remainingTime;
+        };
+      },
+    );
+  };
+
   public shared (message) func makeBid(auctionId : AuctionId, price : Nat) : async () {
     // Implementation here
   };
