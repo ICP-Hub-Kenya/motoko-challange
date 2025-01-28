@@ -1,6 +1,7 @@
 import List "mo:base/List";
 import Debug "mo:base/Debug";
 import Result "mo:base/Result";
+import Array "mo:base/Array";
 
 actor {
   type Item = {
@@ -72,6 +73,12 @@ actor {
       bidHistory;
       remainingTime = auction.remainingTime;
     };
+  };
+
+  public query func getAllAuctions() : async [AuctionDetails] {
+    let auctionList = List.toArray(auctions);
+
+    Array.map<Auction, AuctionDetails>(auctionList, func(auction) { { item = auction.item; bidHistory = List.toArray(List.reverse(auction.bidHistory)); remainingTime = auction.remainingTime } });
   };
 
   public shared (message) func makeBid(auctionId : AuctionId, price : Nat) : async () {
