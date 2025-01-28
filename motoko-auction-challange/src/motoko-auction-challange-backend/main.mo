@@ -3,6 +3,7 @@ import Debug "mo:base/Debug";
 import Time "mo:base/Time";
 import Nat "mo:base/Nat";
 import Int "mo:base/Int";
+import Text "mo:base/Text";
 
 actor {
   type Item = {
@@ -88,14 +89,30 @@ actor {
 
   // makeBid function that adds new bid to the auction's bid history.
 
-  public shared (message) func makeBid(auctionId : AuctionId, price : Nat) : async () {
+  public shared (message) func makeBid(auctionId : AuctionId, price : Nat) : async Text {
     let auction = findAuction(auctionId); // Retrieves the auction by its ID 
+
+    if (not auction.isActive) {
+      return "Auction is not active";
+    };
+
+    if (price < auction.reservePrice) {
+      return "Bid price is less than the reserve price";
+    };
+
+    if (auction.remainingTime == 0) {
+      return "Auction has ended";
+    };
+
+
+
     let newBid : Bid = {
       price;
       time = Int.abs(Time.now());
       originator = message.caller;
     };
     auction.bidHistory := List.append(List.fromArray([newBid]), auction.bidHistory);
+    return "Bid successful";
   };
 
   // Public function that allows users to retrieve a list of all active auctions(those whose remaining time is greater than zero)
