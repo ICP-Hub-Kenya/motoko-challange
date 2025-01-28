@@ -1,0 +1,4 @@
+[dependencies]
+base = "0.13.4"
+uuid = "1.0.0"
+map = "9.0.1"
