@@ -6,6 +6,7 @@ import Time "mo:base/Time";
 import Timer "mo:base/Timer";
 import Int "mo:base/Int";
 import Nat "mo:base/Nat";
+import Buffer "mo:base/Buffer";
 
 actor {
   type Item = {
@@ -191,6 +192,21 @@ actor {
         #ok(());
       };
     };
+  };
+
+  public shared query (message) func getBiddingHistory() : async [(AuctionId, Bid)] {
+    var userBids = Buffer.Buffer<(AuctionId, Bid)>(0);
+
+    for (auction in List.toArray(auctions).vals()) {
+      let bids = List.toArray(auction.bidHistory);
+      for (bid in bids.vals()) {
+        if (bid.originator == message.caller) {
+          userBids.add((auction.id, bid));
+        };
+      };
+    };
+
+    Buffer.toArray(userBids);
   };
 
 };
