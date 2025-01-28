@@ -14,8 +14,8 @@ import Error "mo:base/Error";
 
 actor class AuctionSystem() {
     // Constants for validation
-    private let MIN_AUCTION_DURATION_NS = 5 * 60 * 1000000000; // 5 minutes
-    private let MAX_AUCTION_DURATION_NS = 30 * 24 * 60 * 60 * 1000000000; // 30 days
+    private let MIN_AUCTION_DURATION_S = 5 * 60 ; // 5 minutes
+    private let MAX_AUCTION_DURATION_S = 30 * 24 * 60 * 60 ; // 30 days
     private let MAX_BIDS_PER_USER = 1000;
 
     
@@ -86,10 +86,10 @@ actor class AuctionSystem() {
         if (reservePrice < startPrice) {
             return #err("Reserve price must be greater than or equal to start price");
         };
-        if (duration < MIN_AUCTION_DURATION_NS) {
+        if (duration < MIN_AUCTION_DURATION_S) {
             return #err("Auction duration too short");
         };
-        if (duration > MAX_AUCTION_DURATION_NS) {
+        if (duration > MAX_AUCTION_DURATION_S) {
             return #err("Auction duration too long");
         };
         #ok()
@@ -144,7 +144,7 @@ actor class AuctionSystem() {
             description;
             startPrice;
             reservePrice;
-            endTime = currentTime + duration;
+             endTime = currentTime + duration * 1000000000; // Convert seconds to nanoseconds
             highestBid = null;
             status = #active;
             events = [{
@@ -163,7 +163,7 @@ actor class AuctionSystem() {
          // Set a timer to automatically close the auction after the specified duration.
     // The <system> capability is required because setting a timer involves system-level operations.
             ignore Timer.setTimer<system>(
-                #nanoseconds(duration),// The duration after which the auction should be closed, specified in nanoseconds.
+                 #nanoseconds(duration * 1000000000), // Convert seconds to nanoseconds
                 func() : async () {
                     await closeAuction(auction.id);
                 }
