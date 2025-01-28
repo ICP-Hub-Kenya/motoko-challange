@@ -24,11 +24,13 @@ actor {
 
   type Auction = {
     id : AuctionId;
+    creator : Principal;
     item : Item;
     var bidHistory : List.List<Bid>;
     var remainingTime : Nat;
     var status : AuctionStatus;
     var winner : ?Principal;
+    reservePrice : Nat;
   };
 
   type AuctionDetails = {
@@ -99,7 +101,7 @@ actor {
   stable var auctions = List.nil<Auction>();
   stable var idCounter = 0;
 
-  public func newAuction(item : Item, duration : Nat) : async Result.Result<(), Text> {
+  public shared (message) func newAuction(item : Item, duration : Nat, reservePrice : Nat) : async Result.Result<(), Text> {
     // Implementation here
     if (item.title == "") {
       return #err("Title cannot be empty");
@@ -111,11 +113,13 @@ actor {
 
     let newAuction : Auction = {
       id = idCounter;
+      creator = message.caller;
       item = item;
       var bidHistory = List.nil<Bid>();
       var remainingTime = duration;
       var status = #active;
       var winner = null;
+      reservePrice;
     };
 
     auctions := List.push(newAuction, auctions);
