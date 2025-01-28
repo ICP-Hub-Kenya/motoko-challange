@@ -36,4 +36,6 @@ cd motoko-auction-challange
 ```
 
 ## Demo Video
-https://github.com/zaidsaid-007/motoko-challange/blob/main/motoko-auction-challange/Auction%20challenge.mp4
+
+[![Watch the video](https://img.youtube.com/vi/oEQMBj-l3ss/0.jpg)](https://youtu.be/oEQMBj-l3ss)
+
