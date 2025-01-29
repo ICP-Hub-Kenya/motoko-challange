@@ -125,7 +125,7 @@ Run tests using:
 
 ## Demo Video
 
-<video controls src="motoko-challenge-backend- demo.mp4" title="Link to demo video showing functionality]"></video>
+[<video controls src="motoko-challenge-backend- demo.mp4" title="Link to demo video showing functionality\]"></video>](https://drive.google.com/file/d/1AbmJTxmFJwJ8gKR95JHOMuVrbQG7OG8E/view?usp=drive_link)
 
 ## Challenges and Solutions
 
