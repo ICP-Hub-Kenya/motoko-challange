@@ -3,6 +3,8 @@ import Timer "mo:base/Timer";
 import Debug "mo:base/Debug";
 import List "mo:base/List";
 import Array "mo:base/Array";
+import IcpLedger "canister:icp_ledger_canister";
+
 
 actor {
   type Item = {
@@ -35,6 +37,16 @@ actor {
     item : Item;
     bidHistory : [Bid];
     remainingTime : Nat;
+  };
+
+  type Tokens = {
+    e8s : Nat64;
+  };
+
+  type TransferArgs = {
+    amount : Tokens;
+    toPrincipal : Principal;
+    toSubaccount : ?IcpLedger.SubAccount;
   };
 
   func findAuction(auctionId : AuctionId) : Auction {
@@ -154,16 +166,42 @@ let timer = Timer.recurringTimer(#seconds 1, tick);
     if (Principal.isAnonymous(originator)) {
       Debug.trap("Anonymous caller");
     };
+
     let auction = findAuction(auctionId);
     if (price < minimumPrice(auction)) {
       Debug.trap("Price too low");
     };
+
+    if(originator == auction.item.owner) {
+      Debug.trap("Owner cannot bid");
+      };
+
     let time = auction.remainingTime;
     if (time == 0) {
       Debug.trap("Auction closed");
     };
-    let newBid = { price; time; originator };
-    auction.bidHistory := List.push(newBid, auction.bidHistory);
+    
+    let transferResult = await Ledger.icrc1_transfer({
+    from_subaccount = null;
+    to = { owner = Principal.fromActor(this); subaccount = null };
+    amount = price;
+    fee = null;
+    memo = null;
+    created_at_time = null;
+  });
+
+    switch (transferResult) {
+      case (#Ok(blockIndex)) {
+        // If Transfer is successful, add the bid to the bid history
+        let newBid = { price; time; originator };
+        auction.bidHistory := List.push(newBid, auction.bidHistory);
+        #Ok(blockIndex)
+      };
+      case (#Err(transferError)) {
+        // Transfer failed, return the error
+        #Err(transferError)
+      };
+    };
   };
 
 
