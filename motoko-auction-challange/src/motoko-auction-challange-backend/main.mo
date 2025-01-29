@@ -91,17 +91,17 @@ actor {
 //2. Function to allow users get all active auctions 
   public func getActiveAuctions() : async [AuctionOverview] {
     let activeAuctions = List.filter(auctions, func (auction : Auction) : Bool {
-      auction.remainingTime > 0
+        auction.remainingTime > 0 & auction.status.isActive
     });
     
     let overviews = List.map(activeAuctions, func (auction : Auction) : AuctionOverview {
-      {
-        id = auction.id;
-        item = auction.item;
-      }
+        {
+            id = auction.id;
+            item = auction.item;
+        }
     });
   
-  List.toArray(overviews)
+    return List.toArray(overviews);
   };
 
 
@@ -158,29 +158,23 @@ let timer = Timer.recurringTimer(#seconds 1, tick);
     };
   };
 
-  public shared (message) func makeBid(auctionId : AuctionId, price : Nat) : async () {
-    // Implementation here
-    let originator = message.caller;
-    if (Principal.isAnonymous(originator)) {
-      Debug.trap("Anonymous caller");
-    };
+  public func makeBid(auctionId : AuctionId, bidPrice : Nat) : async @Result {
     let auction = findAuction(auctionId);
-    if (price < minimumPrice(auction)) {
-      Debug.trap("Price too low");
+    let newBid = { price = bidPrice; time = getCurrentTime(); originator = msg.caller };
+    if (auction.remainingTime == 0 | not auction.status.isActive) {
+        return #err("Auction is not active or has ended.");
     };
-    let time = auction.remainingTime;
-    if (time == 0) {
-      Debug.trap("Auction closed");
-    };
-    let newBid = { price; time; originator };
+    // Proceed with placing the bid
     auction.bidHistory := List.push(newBid, auction.bidHistory);
+    auction.bidCount += 1;
+    return #ok(());
   };
 
 
 //5. Retrieve bidding history in order. 
-  public func getHistory(auctionId : AuctionId) : async [Bid] {
+  public query func getHistory(auctionId : AuctionId) : async [Bid] {
     let auction = findAuction(auctionId);
-    Array.reverse(List.toArray(auction.bidHistory));
+    return List.toArray(auction.bidHistory);
   };
 
 // New function to get the highest bid for an auction
