@@ -75,6 +75,24 @@ actor {
     };
   };
 
+/// Retrieve all active auctions (remainingTime > 0)
+
+public query func getActiveAuctions() : async [AuctionDetails] {
+  let activeAuctions = List.filter<Auction>(auctions, func auction = auction.remainingTime > 0);
+  
+  return Array.map<Auction, AuctionDetails>(
+    List.toArray(activeAuctions),
+    func (auction) {
+      let bidHistory = List.toArray(List.reverse(auction.bidHistory));
+      return {
+        item = auction.item;
+        bidHistory = bidHistory;
+        remainingTime = auction.remainingTime;
+      };
+    }
+  );
+};
+
  /// Convert `auctions` list to `auctionArray` before upgrades
 
    system func preupgrade() {
