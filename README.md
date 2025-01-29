@@ -1,6 +1,6 @@
 # Motoko Challenge: Enhance a Decentralized Auction Dapp
 
-# motoko-auction-challange
+# Demo video[https://tinyurl.com/26mayt5j]
 
 ## Overview
 The Motoko Auction Challenge is a decentralized auction system built using the Motoko programming language. This project allows users to create auctions, place bids, and retrieve auction details, all while ensuring a secure and efficient bidding process.
@@ -20,7 +20,7 @@ This auction system features:
 - **User Experience**: Enhanced the overall user experience by ensuring that all functions are intuitive and easy to use.
 
 ## Demo Video
-A video demonstrating the complete functionality of the auction system, including creating auctions, placing bids, and retrieving auction details, can be found here: [Demo Video](link_to_your_video).
+A video demonstrating the complete functionality of the auction system, including creating auctions, placing bids, and retrieving auction details, can be found here: [Demo Video](https://tinyurl.com/26mayt5j).
 
 ## Getting Started
 
