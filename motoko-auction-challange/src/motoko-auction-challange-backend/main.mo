@@ -1,60 +1,64 @@
+import Types "types";
+import Auction "auction";
+import Bid "bid";
+import Utils "utils";
 import List "mo:base/List";
-import Debug "mo:base/Debug";
+import Result "mo:base/Result";
+import Principal "mo:base/Principal";
 
 actor {
-  type Item = {
-    title : Text;
-    description : Text;
-    image : Blob;
-  };
+    stable var auctions = List.nil<Types.Auction>();
+    stable var idCounter = 0;
 
-  type Bid = {
-    price : Nat;
-    time : Nat;
-    originator : Principal;
-  };
+    let auctionManager = Auction.AuctionManager();
+    let bidManager = Bid.BidManager();
 
-  type AuctionId = Nat;
-
-  type Auction = {
-    id : AuctionId;
-    item : Item;
-    var bidHistory : List.List<Bid>;
-    var remainingTime : Nat;
-  };
-
-  type AuctionDetails = {
-    item : Item;
-    bidHistory : [Bid];
-    remainingTime : Nat;
-  };
-
-  func findAuction(auctionId : AuctionId) : Auction {
-  let result = List.find<Auction>(auctions, func auction = auction.id == auctionId);
-    switch (result) {
-      case null Debug.trap("Inexistent id");
-      case (?auction) auction;
+    public shared(msg) func newAuction(item : Types.Item, duration : Nat) : async Types.AuctionId {
+        let auction = auctionManager.createAuction(idCounter, item, duration, msg.caller);
+        auctions := List.push(auction, auctions);
+        idCounter += 1;
+        auction.id;
     };
-  };
 
-  stable var auctions = List.nil<Auction>();
-  stable var idCounter = 0;
+    public shared(msg) func makeBid(auctionId : Types.AuctionId, price : Nat) : async Result.Result<(), Text> {
+        switch (List.find<Types.Auction>(auctions, func(a) { a.id == auctionId })) {
+            case null { #err("Auction not found") };
+            case (?auction) {
+                bidManager.placeBid(auction, price, msg.caller);
+            };
+        };
+    };
 
-  public func newAuction(item : Item, duration : Nat) : async () {
-    // Implementation here
-  };
+    public query func getActiveAuctions() : async [Types.AuctionDetails] {
+        Utils.filterActiveAuctions(auctions);
+    };
 
-  public query func getAuctionDetails(auctionId : AuctionId) : async AuctionDetails {
-    let auction = findAuction(auctionId);
-    let bidHistory = List.toArray(List.reverse(auction.bidHistory));
-    { 
-      item = auction.item; 
-      bidHistory; 
-      remainingTime = auction.remainingTime 
-    }
-  };
+    public shared(msg) func addReservePrice(auctionId : Types.AuctionId, price : Nat) : async Result.Result<(), Text> {
+        switch (List.find<Types.Auction>(auctions, func(a) { a.id == auctionId })) {
+            case null { #err("Auction not found") };
+            case (?auction) {
+                auctionManager.setReservePrice(auction, price, msg.caller);
+            };
+        };
+    };
 
-  public shared (message) func makeBid(auctionId : AuctionId, price : Nat) : async () {
-    // Implementation here
-  };
-}
+    public func updateAuctionTimers() : async () {
+        auctions := List.map<Types.Auction, Types.Auction>(
+            auctions,
+            func(auction) {
+                let _ = auctionManager.updateTimer(auction);
+                auction;
+            }
+        );
+    };
+
+    public query func getAuctionDetails(auctionId : Types.AuctionId) : async Result.Result<Types.AuctionDetails, Text> {
+        switch (List.find<Types.Auction>(auctions, func(a) { a.id == auctionId })) {
+            case null { #err("Auction not found") };
+            case (?auction) {
+                #ok(Utils.auctionToDetails(auction));
+            };
+        };
+    };
+};
+
