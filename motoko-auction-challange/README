@@ -125,3 +125,8 @@ The `post_upgrade` function sets up a timer to check and close auctions periodic
 ## Conclusion
 
 This auction system offers a simple decentralized marketplace for users to bid on items. The system manages auction durations, bids, and the reserve price automatically. Auctions are securely closed when their time runs out, and the highest bid is selected if it meets the reserve price.
+
+## Demo Video
+Watch the demo video to see the auction system in action:
+
+https://drive.google.com/file/d/1SxtNkPX57W0xCH_gU9F19pDMgWdt-Hw4/view?usp=sharing
