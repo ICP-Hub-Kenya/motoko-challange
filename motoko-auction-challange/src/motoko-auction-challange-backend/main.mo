@@ -1,5 +1,7 @@
 import List "mo:base/List";
 import Debug "mo:base/Debug";
+import Iter "mo:base/Iter";
+import Array "mo:base/Array";
 
 actor {
   type Item = {
@@ -29,29 +31,59 @@ actor {
     remainingTime : Nat;
   };
 
-  func findAuction(auctionId : AuctionId) : Auction {
-  let result = List.find<Auction>(auctions, func auction = auction.id == auctionId);
-    switch (result) {
-      case null Debug.trap("Inexistent id");
-      case (?auction) auction;
+/// Function to find an auction by ID
+  func findAuction(auctionId : AuctionId) : ?Auction {
+    List.find<Auction>(auctions, func auction = auction.id == auctionId);
+  };
+
+  /// Stable storage (converted between upgrades)
+
+  stable var auctionArray : [Auction]= [];
+  stable var idCounter: Nat = 0;
+
+  /// Transient list (converted from array on upgrade)
+   var auctions : List.List<Auction> = List.fromArray(auctionArray);
+
+ /// Creates a new auction and stores it
+  public func newAuction(item : Item, duration : Nat) : async AuctionId {
+     let auctionId = idCounter;
+     idCounter += 1;
+
+    let newAuction : Auction = {
+      id = auctionId;
+      item;
+      var bidHistory = List.nil<Bid>();
+      var remainingTime = duration;
+    };
+
+    auctions := List.push(newAuction, auctions);
+    return auctionId;
+  };
+
+/// Retrieve auction details
+  public query func getAuctionDetails(auctionId : AuctionId) : async ?AuctionDetails {
+    switch (findAuction(auctionId)) {
+      case (?auction){
+         let bidHistory = List.toArray(List.reverse(auction.bidHistory));
+          return ?{
+            item = auction.item; 
+            bidHistory; 
+            remainingTime = auction.remainingTime 
+          };
+      };
+      case null return null;
     };
   };
 
-  stable var auctions = List.nil<Auction>();
-  stable var idCounter = 0;
+ /// Convert `auctions` list to `auctionArray` before upgrades
 
-  public func newAuction(item : Item, duration : Nat) : async () {
-    // Implementation here
+   system func preupgrade() {
+    auctionArray := List.toArray(auctions);
   };
 
-  public query func getAuctionDetails(auctionId : AuctionId) : async AuctionDetails {
-    let auction = findAuction(auctionId);
-    let bidHistory = List.toArray(List.reverse(auction.bidHistory));
-    { 
-      item = auction.item; 
-      bidHistory; 
-      remainingTime = auction.remainingTime 
-    }
+  /// Convert `auctionArray` back to `auctions` list after upgrades
+  system func postupgrade() {
+    auctions := List.fromArray(auctionArray);
   };
 
   public shared (message) func makeBid(auctionId : AuctionId, price : Nat) : async () {
