@@ -10,6 +10,7 @@ To learn more before you start working with `motoko-auction-challange`, see the 
 - [SDK Developer Tools](https://internetcomputer.org/docs/current/developer-docs/setup/install)
 - [Motoko Programming Language Guide](https://internetcomputer.org/docs/current/motoko/main/motoko)
 - [Motoko Language Quick Reference](https://internetcomputer.org/docs/current/motoko/main/language-manual)
+- [Loom Video](https://www.loom.com/share/337b783221f6446abab5af901a409857?sid=8a9bb4ab-e53d-4405-afa9-35775cf38e2e)
 
 If you want to start working on your project right away, you might want to try the following commands:
 
